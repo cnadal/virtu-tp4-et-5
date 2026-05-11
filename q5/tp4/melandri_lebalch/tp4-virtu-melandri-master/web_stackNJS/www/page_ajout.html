@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Ajout de Voitures</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; }
+        .btn { padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .btn:hover { background: #388E3C; }
+        #resultat { margin-top: 20px; padding: 15px; border: 1px solid #ccc; background: #f9f9f9; min-height: 50px; }
+        nav { margin-bottom: 20px; }
+        nav a { margin-right: 15px; text-decoration: none; color: #2196F3; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html">⬅️ Retour à l'accueil</a>
+    </nav>
+    
+    <h1>Étape 2 : Ajout de voitures dans le Garage</h1>
+    <p>Déclenche l'appel AJAX pour ajouter les véhicules.</p>
+    
+    <button class="btn" onclick="ajouterVoitures()">Ajouter les voitures</button>
+    
+    <div id="resultat">En attente d'action...</div>
+
+    <script>
+        function ajouterVoitures() {
+            const divResult = document.getElementById('resultat');
+            divResult.innerHTML = "<em>Appel AJAX en cours...</em>";
+            
+            fetch('http://localhost:8082/web_stackNJS/ajoutVoituresGarage.php')
+                .then(response => response.text())
+                .then(data => {
+                    divResult.innerHTML = "<strong>Réponse :</strong><br><br>" + data;
+                })
+                .catch(error => {
+                    divResult.innerHTML = "<span style='color:red;'><strong>Erreur réseau :</strong> " + error.message + "</span>";
+                });
+        }
+    </script>
+</body>
+</html>

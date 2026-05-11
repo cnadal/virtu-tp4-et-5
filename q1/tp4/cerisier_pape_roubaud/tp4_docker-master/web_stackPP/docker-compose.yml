@@ -1,0 +1,49 @@
+services:
+  apache80:
+    container_name: apache82_pg
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM php:8.2-apache
+        RUN apt-get update && apt-get install -y nano git libpq-dev
+        RUN docker-php-ext-install pdo_pgsql
+        RUN apt-get clean
+        RUN mkdir -p /var/www/html/web_stackPP
+        RUN mkdir -p /var/www/html/bd
+        COPY listeVoitures.php /var/www/html/web_stackPP/
+        COPY ajoutVoituresGarage.php /var/www/html/web_stackPP/
+        COPY creationBDD.php /var/www/html/web_stackPP/
+        COPY creationBDD.php /var/www/html/bd/
+    image: web80tp4docker_pg
+    ports:
+        - 80:80
+    networks:
+      - web_stack
+
+  bddPostgres:
+    image: postgres:15
+    env_file: var.env
+    container_name: postgres5432
+    ports:
+      - ${PORT_POSTGRES}:5432
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    networks:
+      - web_stack
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pga_postgres
+    depends_on:
+      - bddPostgres
+    ports:
+      - 8282:80
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    networks:
+      - web_stack
+
+networks:
+  web_stack:
+    driver: bridge

@@ -1,0 +1,144 @@
+services:
+  proxy_nginx:
+    image: nginx:latest
+    container_name: proxy_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/certs:/etc/nginx/certs
+    networks:
+      net_public:
+        aliases:
+          - app.little.bloomyindev.me
+          - auth.little.bloomyindev.me
+    depends_on:
+      - web_app
+      - keycloak_auth
+      - mailpit
+
+  web_app:
+    build:
+      context: ./web/app
+    container_name: web_app
+    environment:
+      - DATABASE_HOST=mysql_master
+      - DATABASE_HOST_SLAVE=mysql_slave
+      - DATABASE_PORT=3306
+      - DATABASE_USER=${WEB_DB_USER}
+      - DATABASE_PASSWORD=${WEB_DB_PASSWORD}
+      - DATABASE_DATABASE=${WEB_DB_DATABASE}
+      - APP_BASE_URL=${WEB_BASE_URL}
+      - KEYCLOAK_BASE_URL=${KEYCLOAK_BASE_URL}
+      - KEYCLOAK_REALM=${WEB_AUTH_REALM}
+      - KEYCLOAK_CLIENT_ID=${WEB_AUTH_CLIENT_ID}
+      - KEYCLOAK_CLIENT_SECRET=${WEB_AUTH_CLIENT_SECRET}
+    networks:
+      - net_public
+      - net_db
+    depends_on:
+      mysql_master:
+        condition: service_healthy
+      mysql_slave:
+        condition: service_healthy
+
+  mysql_master:
+    image: mysql:9
+    container_name: mysql_master
+    environment:
+      - MYSQL_USER=${WEB_DB_USER}
+      - MYSQL_PASSWORD=${WEB_DB_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${WEB_DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${WEB_DB_DATABASE}
+    volumes:
+      - ./databases/web/master:/var/lib/mysql
+      - ./web/master.cnf:/etc/mysql/conf.d/replication.cnf
+      - ./web/init.master.sql:/docker-entrypoint-initdb.d/master.sql
+    networks:
+      - net_db
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${WEB_DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql_slave:
+    image: mysql:9
+    container_name: mysql_slave
+    environment:
+      - MYSQL_ROOT_PASSWORD=${WEB_DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${WEB_DB_DATABASE}
+    volumes:
+      - ./databases/web/slave:/var/lib/mysql
+      - ./web/slave.cnf:/etc/mysql/conf.d/replication.cnf
+      - ./web/init.slave.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - net_db
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${WEB_DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      mysql_master:
+        condition: service_healthy
+
+  keycloak_auth:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak_auth
+    command: start-dev
+    environment:
+      - KC_BOOTSTRAP_ADMIN_USERNAME=${KEYCLOAK_DEFAULT_USER}
+      - KC_BOOTSTRAP_ADMIN_PASSWORD=${KEYCLOAK_DEFAULT_PASSWORD}
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://postgres-keycloak:5432/${KEYCLOAK_DB_NAME}
+      - KC_DB_USERNAME=${KEYCLOAK_DB_USER}
+      - KC_DB_PASSWORD=${KEYCLOAK_DB_PASSWORD}
+      - KC_PROXY_HEADERS=xforwarded
+      - KC_HOSTNAME=https://auth.little.bloomyindev.me
+      - KC_HTTP_ENABLED=true
+    networks:
+      - net_public
+      - net_auth
+    depends_on:
+      postgres_keycloak:
+        condition: service_healthy
+
+  postgres_keycloak:
+    image: postgres:18-alpine
+    container_name: postgres_keycloak
+    environment:
+      - POSTGRES_USER=${KEYCLOAK_DB_USER}
+      - POSTGRES_PASSWORD=${KEYCLOAK_DB_PASSWORD}
+      - POSTGRES_DB=${KEYCLOAK_DB_NAME}
+    volumes:
+      - ./databases/keycloak:/var/lib/postgresql
+    networks:
+      net_auth:
+        aliases:
+          - postgres-keycloak
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER} -d ${KEYCLOAK_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit
+    environment:
+      - MP_WEBROOT=mailpit-ui
+    ports:
+      - 8025:8025
+    networks:
+      - net_public
+
+
+networks:
+  net_public:
+    driver: bridge
+  net_db:
+    driver: bridge
+  net_auth:
+    driver: bridge

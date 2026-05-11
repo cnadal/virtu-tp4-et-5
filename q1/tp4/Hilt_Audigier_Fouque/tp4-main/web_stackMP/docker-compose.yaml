@@ -1,0 +1,45 @@
+services:
+  
+  web90:
+    build: ./web90
+    image: web90
+    container_name: web90
+    volumes:
+      - ./web90/html:/var/www/html
+      - ./web90/apache/sites_enabled:/etc/apache2/sites_enabled
+      - ./web90/php/custom-php.ini:/usr/local/etc/php/conf.d/custom.ini
+    ports:
+      - 90:80
+    networks:
+      - web_stack
+
+  mysql:
+    image: mysql:9.2
+    container_name: mysql3307
+    env_file:
+      - ./var.env
+    ports:
+      - 3307:3306
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - web_stack
+
+  pma:
+    image: phpmyadmin
+    container_name: pma_mysql83
+    depends_on:
+      - mysql 
+    ports:
+    - 83:80
+    env_file:
+      - ./var.env
+    networks:
+      - web_stack
+
+networks:
+  web_stack:
+    driver: bridge
+
+volumes:
+  mysql_data:

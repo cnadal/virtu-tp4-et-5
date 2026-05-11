@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres5432
+    env_file: ./var.env
+    ports:
+      - 5432:5432
+    volumes:
+      - ./postgres1/data:/var/lib/postgresql/data
+      - ./postgres1/postgresql.conf:/etc/postgres/postgresql.conf
+    networks:
+      - pontPP
+
+  pga:
+    image: dpage/pgadmin4
+    container_name: pga
+    depends_on:
+      - postgres
+    ports:
+      - 83:80
+    env_file: ./var.env
+    volumes:
+      - ./pgadmin:/var/lib/pgadmin
+    networks:
+      - pontPP
+
+  web90:
+    image: web90guibalprudhomme
+    build:
+      context: .
+      dockerfile: web90/Dockerfile
+    container_name: web90
+    volumes:
+      - ./web90/apache/sites_enabled:/etc/apache2/sites_enabled
+      - ./web90/php/custom-php.ini:/usr/local/etc/php/conf.d/custom-php.ini
+    ports:
+      - 90:80
+    networks:
+      - pontPP
+
+networks:
+  pontPP:
+    driver: bridge

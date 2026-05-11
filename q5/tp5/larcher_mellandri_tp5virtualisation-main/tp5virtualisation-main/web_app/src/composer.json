@@ -1,0 +1,11 @@
+{
+  "name": "mon-projet/webapp",
+  "description": "Mon projet PHP",
+  "type": "project",
+  "require": {},
+  "autoload": {
+    "psr-4": {
+      "App\\": "src/"
+    }
+  }
+}

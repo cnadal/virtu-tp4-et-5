@@ -1,0 +1,48 @@
+services:
+  web_mp:
+    build: .
+    image: php:8.2-apache
+    container_name: web_mp
+    ports:
+      - "89:80"
+    env_file:
+      - ./var.env
+    volumes:
+      - ./web_mp/html:/var/www/html
+    depends_on:
+      - db_mysql
+    networks:
+        - web_stackMP
+
+  db_mysql:
+    image: mysql:9.2
+    container_name: db_mysql
+    env_file:
+      - ./var.env
+    volumes:
+      - db_mysql_data:/var/lib/mysql
+    networks:
+      - web_stackMP
+    ports:
+      - "3306:3306"
+
+  pma:
+    image: phpmyadmin
+    container_name: pma_mysql82
+    depends_on:
+      - db_mysql
+    environment:
+      - PMA_HOST=db_mysql
+    ports:
+      - "82:80"
+    networks:
+      - web_stackMP
+
+volumes:
+  db_mysql_data:
+
+networks:
+  web_stackMP:
+    driver: bridge
+
+

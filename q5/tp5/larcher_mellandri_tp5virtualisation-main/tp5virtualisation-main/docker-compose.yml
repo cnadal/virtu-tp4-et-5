@@ -1,0 +1,95 @@
+services:
+  web_mp:
+    build:
+      context: ./web_app/
+      dockerfile: Dockerfile
+    container_name: "web_app"
+    volumes:
+      - ./web_app/src/:/var/www/html/
+    networks:
+      - net_public
+      - net_db
+  mail_test:
+    image: axllent/mailpit
+    container_name: "mail_test"
+    ports:
+      - 8025:80
+    networks:
+      - net_public
+  mysql_master:
+    image: mysql:9.2
+    container_name: "mysql_master"
+    ports:
+      - 3307:3306
+    env_file:
+      - var.env
+    depends_on:
+      - mysql_slave
+    command: --init-file /data/application/init.sql
+    volumes:
+      - ./init_master.sql:/data/application/init.sql
+      - ./mysql_master_data:/var/lib/mysql
+      - ./master.cnf:/etc/mysql/conf.d/replication.cnf
+    networks:
+      - net_db
+
+  mysql_slave:
+    image: mysql:9.2
+    container_name: "mysql_slave"
+    ports:
+      - 3308:3306
+    env_file:
+      - var.env
+    command: --init-file /data/application/init.sql
+    volumes:
+      - ./init_slave.sql:/data/application/init.sql
+      - ./mysql_slave_data:/var/lib/mysql
+      - ./slave.cnf:/etc/mysql/conf.d/replication.cnf
+    networks:
+      - net_db
+  rp_NGINX:
+    image: nginx:latest
+    container_name: "RP_NGINX"
+    ports:
+      - "80:80"
+      - "443:80"
+    volumes:
+      - "./configNginx/nginx.conf:/etc/nginx/nginx.conf"
+      - "./configNginx/conf.d:/etc/nginx/conf.d"
+    networks:
+      - net_public
+
+  postgres_keycloak:
+    image: postgres:15
+    container_name: "postgres_keycloak"
+    env_file:
+      - var.env
+    networks:
+      - net_auth
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak_user -d keycloak_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  keycloak_auth:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: "keycloak_auth"
+    command: start-dev
+    depends_on:
+      postgres_keycloak:
+        condition: service_healthy
+    env_file:
+      - var.env
+    networks:
+      - net_public
+      - net_auth
+
+networks:
+  net_public:
+    driver: bridge
+  net_db:
+    driver: bridge
+  net_auth:
+    driver: bridge

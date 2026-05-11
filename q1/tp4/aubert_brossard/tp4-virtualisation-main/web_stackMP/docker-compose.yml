@@ -1,0 +1,48 @@
+services:
+
+  web85:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: web85
+    ports:
+      - 85:80
+    #volumes:
+    #  - ./web85/html:/var/www/html
+    #  - ./web85/apache/sites_enabled:/etc/apache2/sites_enabled
+    #  - ./web85/php/custom-php.ini:/usr/local/etc/php/conf.d/custom.ini
+    networks:
+      - web_stack
+    depends_on:
+      - mysql
+    env_file:
+      - .env
+
+  mysql:
+    image: mysql:9.2
+    container_name: mysql3306
+    ports:
+      - 3306:3306
+    volumes:
+      - ./mysql1/db/custom.cnf:/etc/mysql/conf.d/custom.cnf
+    networks:
+      - web_stack
+    env_file:
+      - .env
+
+  pma:
+    image: phpmyadmin:latest
+    container_name: pma_mysql86
+    ports:
+      - 86:80
+    networks:
+      - web_stack
+    depends_on:
+      - mysql
+    environment:
+      PMA_HOST: mysql
+
+networks:
+  web_stack:
+    driver: bridge
+

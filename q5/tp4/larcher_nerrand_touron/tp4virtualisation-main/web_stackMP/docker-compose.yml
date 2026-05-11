@@ -1,0 +1,49 @@
+services:
+  web_mp:
+    image: php:8.2-apache
+    container_name: 'web_mp'
+    ports:
+      - 8080:80
+    networks:
+      - web_stack
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM php:8.2-apache
+        RUN apt-get update && apt-get install -y nano && apt-get install -y git
+        RUN docker-php-ext-install mysqli pdo pdo_mysql
+        COPY php/ /var/www/html/
+        RUN mkdir -p /var/www/html/web_stackMP && cp /var/www/html/*.php /var/www/html/web_stackMP/
+
+  db_mysql:
+    image: mysql:9.2
+    container_name: 'db_mysql'
+    ports:
+      - 3306:3306
+    env_file:
+      - var.env
+
+    command: --init-file /data/application/init.sql
+
+    volumes:
+      - ./init.sql:/data/application/init.sql
+      - ./mysql_data:/var/lib/mysql
+    networks:
+      - web_stack
+
+  pma:
+    image: phpmyadmin
+    container_name: 'pma'
+    depends_on:
+      - db_mysql
+    ports:
+      - 8082:80
+    env_file:
+      - ./var.env
+    networks:
+      - web_stack
+
+
+networks:
+  web_stack:
+    driver: bridge

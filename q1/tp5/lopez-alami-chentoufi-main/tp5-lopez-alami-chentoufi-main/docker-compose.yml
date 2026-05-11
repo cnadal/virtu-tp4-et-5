@@ -1,0 +1,74 @@
+version: '3.9'
+
+services:
+
+  proxy_nginx:
+    image: nginx:latest
+    container_name: proxy_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - net_public
+    depends_on:
+      - web_app
+
+  web_app:
+    build: .
+    container_name: web_app
+    networks:
+      - net_public
+      - net_db
+    depends_on:
+      - mysql_master
+
+  mysql_master:
+    image: mysql:8.0
+    container_name: mysql_master
+    env_file: .env
+    volumes:
+      - ./master.cnf:/etc/mysql/conf.d/master.cnf
+    networks:
+      - net_db
+
+  mysql_slave:
+    image: mysql:8.0
+    container_name: mysql_slave
+    env_file: .env
+    volumes:
+      - ./slave.cnf:/etc/mysql/conf.d/slave.cnf
+    networks:
+      - net_db
+
+  postgres_keycloak:
+    image: postgres:15
+    container_name: postgres_keycloak
+    env_file: .env
+    networks:
+      - net_auth
+
+  keycloak_auth:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak_auth
+    command: start-dev
+    env_file: .env
+    depends_on:
+      - postgres_keycloak
+    networks:
+      - net_public
+      - net_auth
+
+  mail_test:
+    image: axllent/mailpit
+    container_name: mail_test
+    ports:
+      - "8025:8025"
+    networks:
+      - net_public
+
+networks:
+  net_public:
+  net_db:
+  net_auth:

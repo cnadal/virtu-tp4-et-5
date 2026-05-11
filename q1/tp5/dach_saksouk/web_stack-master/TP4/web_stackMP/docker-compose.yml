@@ -1,0 +1,42 @@
+services:
+  web_app:
+    build: .
+    container_name: web_mp
+    ports:
+      - "8081:80"
+    networks:
+      - web_stack
+    depends_on:
+      - mysql_db
+
+  mysql_db:
+    image: mysql:9.2
+    container_name: mysql_db
+    env_file:
+      - .env
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - web_stack
+    ports:
+      - "3306:3306"
+
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: pma
+    depends_on:
+      - mysql_db
+    environment:
+      - PMA_HOST=mysql_db
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "8082:80"
+    networks:
+      - web_stack
+
+volumes:
+  db_data:
+
+networks:
+  web_stack:
+    driver: bridge

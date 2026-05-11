@@ -1,0 +1,64 @@
+version: '3.8'
+
+# ============================================================
+# Stack Docker - web_stackMP
+# Apache + PHP 8.2 + MySQL 9.2 + PhpMyAdmin
+# ============================================================
+
+services:
+
+  # ---- Serveur Web Apache + PHP 8.2 ----
+  web_mp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: web_mp
+    ports:
+      - "${WEB_MP_PORT}:80"
+    networks:
+      - web_stack
+    depends_on:
+      - db_mysql
+    restart: unless-stopped
+
+  # ---- Serveur de base de données MySQL 9.2 ----
+  db_mysql:
+    image: mysql:9.2
+    container_name: db_mysql
+    ports:
+      - "${MYSQL_PORT}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    networks:
+      - web_stack
+    restart: unless-stopped
+
+  # ---- PhpMyAdmin ----
+  # ---- PhpMyAdmin ----
+  pma:
+    image: phpmyadmin:latest
+    platform: linux/amd64   # 👈 Ajoute cette ligne
+    container_name: pma
+    ports:
+      - "${PMA_PORT_EXT}:80"
+    environment:
+      PMA_HOST: ${PMA_HOST}
+      PMA_PORT: ${PMA_PORT}
+      PMA_USER: ${PMA_USER}
+      PMA_PASSWORD: ${PMA_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    networks:
+      - web_stack
+    depends_on:
+      - db_mysql
+    restart: unless-stopped
+# ============================================================
+# Réseau
+# ============================================================
+networks:
+  web_stack:
+    name: web_stack_MP
+    driver: bridge

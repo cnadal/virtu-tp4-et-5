@@ -1,0 +1,52 @@
+services:
+ 
+  web91:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: web91_pp
+    ports:
+      - 91:80
+    #volumes:
+    #  - ./web91/html:/var/www/html
+    #  - ./web91/apache/sites_enabled:/etc/apache2/sites_enabled
+    #  - ./web91/php/custom-php.ini:/usr/local/etc/php/conf.d/custom.ini
+    networks:
+      - web_stack
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+ 
+  postgres:
+    image: postgres:latest
+    container_name: postgres5432
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    networks:
+      - web_stack
+    env_file:
+      - .env
+ 
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin_92
+    ports:
+      - 92:80
+    networks:
+      - web_stack
+    depends_on:
+      - postgres
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+ 
+networks:
+  web_stack:
+    driver: bridge
+ 
+volumes:
+  postgres_data:
+    driver: local

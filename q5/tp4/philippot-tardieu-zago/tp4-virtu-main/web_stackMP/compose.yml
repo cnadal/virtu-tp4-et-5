@@ -1,0 +1,47 @@
+services:
+  web89:
+    build: .
+    image: apache-web89
+    #image: yvaniak/virtu-apache:1.0
+    #image: harbinfo.iutmontp.univ-montp2.fr/philippote/virtu-apache:1.0
+    #pull_policy: always #pour tester de pull depuis les registry
+    container_name: web_mp
+    volumes:
+      - ./html:/var/www/html
+    ports:
+      - "89:80"
+    networks:
+      - web_stack
+  mysql:
+    image: mysql:9.2
+    #image: yvaniak/virtu-mysql:1.0
+    #image: harbinfo.iutmontp.univ-montp2.fr/philippote/virtu-mysql:1.0
+    #pull_policy: always #pour tester de pull depuis les registry
+    container_name: db_mysql
+    env_file: var.env
+    ports:
+      - 3306:33606
+    volumes:
+      - ./mysql1/db/custom.cnf:/etc/mysql/conf.d/custom.cnf
+      - ./garageM.sql:/docker-entrypoint-initdb.d/garageM.sql
+    networks:
+      - web_stack
+  pma:
+    image: phpmyadmin
+    #image: yvaniak/virtu-phpmyadmin:1.0
+    #image: harbinfo.iutmontp.univ-montp2.fr/philippote/virtu-phpmyadmin:1.0
+    #pull_policy: always #pour tester de pull depuis les registry
+    container_name: pma
+    depends_on:
+      - mysql
+    ports:
+      - 82:80
+    environment:
+      - PMA_HOST=mysql
+    networks:
+      - web_stack
+
+networks:
+  web_stack:
+    name: web_stack
+    driver: bridge

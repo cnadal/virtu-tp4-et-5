@@ -1,0 +1,49 @@
+services:
+  apache80:
+    container_name: apache82
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM php:8.2-apache
+        RUN apt-get update && apt-get install -y nano git 
+        RUN docker-php-ext-install pdo_mysql
+        RUN apt-get clean
+        RUN mkdir -p /var/www/html/web_stackMP
+        RUN mkdir -p /var/www/html/bd
+        COPY listeVoitures.php /var/www/html/web_stackMP/
+        COPY ajoutVoituresGarage.php /var/www/html/web_stackMP/
+        COPY creationBDD.php /var/www/html/web_stackMP/
+        COPY creationBDD.php /var/www/html/bd/
+    image: web80tp4docker
+    ports:
+        - 80:80
+    networks:
+      - web_stack
+
+  mysql:
+    image: mysql:9.2
+    env_file: var.env
+    container_name: mysql3306
+    ports:
+      - ${PORT_MYSQL}:3306
+    volumes:
+      - ./mysql1/mysql:/var/lib/mysql
+      - ./mysql1/db/custom.cnf:/etc/mysql/conf.d/custom.cnf
+    networks:
+      - web_stack
+
+  pma:
+    image: phpmyadmin:latest
+    container_name: pma_mysql8080
+    depends_on:
+      - mysql
+    ports:
+      - 8282:80
+    environment:
+      - PMA_HOST=mysql
+    networks:
+      - web_stack
+
+networks:
+  web_stack:
+    driver: bridge

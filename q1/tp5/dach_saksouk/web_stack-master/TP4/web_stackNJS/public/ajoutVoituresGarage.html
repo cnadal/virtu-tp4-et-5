@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Ajout Voiture AJAX</title>
+</head>
+<body style="font-family: Arial; padding: 20px; text-align: center;">
+    <h2>Ajout Voiture Aléatoire (AJAX)</h2>
+    <div id="content" style="border: 1px solid #ccc; padding: 20px; display: inline-block; background: #fff;">Chargement...</div>
+    <br><br><a href="index.html">Retour à l'accueil</a>
+    <script>
+        fetch('http://localhost:8081/ajoutVoituresGarage.php')
+            .then(response => response.text())
+            .then(html => { document.getElementById('content').innerHTML = html; })
+            .catch(err => { document.getElementById('content').innerText = 'Erreur AJAX : ' + err; });
+    </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Garage de Voitures Électriques</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .product-card { border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .actions { margin-top: 20px; }
+        button { padding: 10px; margin-right: 5px; cursor: pointer; }
+        #results { margin-top: 20px; padding: 10px; border: 1px dashed #777; }
+    </style>
+</head>
+<body>
+    <h1>Bienvenue au Garage Électrique !</h1>
+    
+    <div id="products">
+        <div class="product-card">
+            <h3>Tesla Model 3</h3>
+            <p>Le futur, maintenant. 0-100 en 3.x secondes.</p>
+        </div>
+        <div class="product-card">
+            <h3>Renault Zoe</h3>
+            <p>Citadine électrique ultra-polyvalente.</p>
+        </div>
+    </div>
+
+    <div class="actions">
+        <h3>Actions de Gestion (AJAX)</h3>
+        <button onclick="callAPI('/creationBDD.php')">Création BDD</button>
+        <button onclick="callAPI('/ajoutVoituresGarage.php')">Ajouter Voitures</button>
+        <button onclick="callAPI('/listeVoitures.php')">Lister Voitures</button>
+    </div>
+
+    <div id="results">
+        Cliquez sur un bouton pour voir le résultat ici...
+    </div>
+
+    <script>
+        async function callAPI(url) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerText = "Chargement...";
+            try {
+                const response = await fetch(url);
+                const data = await response.text();
+                resultsDiv.innerText = data;
+            } catch (err) {
+                resultsDiv.innerText = "Erreur : " + err.message;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "name": "web_stack_njs",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "npx http-server public -p 8888 -a 0.0.0.0 -o"
+  },
+  "dependencies": {
+    "http-server": "^14.1.1"
+  }
+}

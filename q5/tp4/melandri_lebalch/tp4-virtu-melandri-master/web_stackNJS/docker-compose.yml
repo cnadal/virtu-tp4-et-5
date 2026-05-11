@@ -1,0 +1,61 @@
+# ============================================================
+# Stack Docker - web_stackNJS
+# NodeJS + MariaDB + PhpMyAdmin
+# ============================================================
+
+services:
+
+  # ---- Serveur Web NodeJS ----
+  web_njs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: web_njs
+    ports:
+      - "${WEB_NJS_PORT:-8082}:3000"
+    # volumes:
+    #   - ./www:/app/www
+    env_file:
+      - var.env
+    networks:
+      - web_stack
+    depends_on:
+      - db_mariadb
+
+  # ---- Serveur de base de données MariaDB ----
+  db_mariadb:
+    image: mariadb:10.11
+    container_name: db_mariadb
+    ports:
+      - "${DB_PORT:-3307}:3306"
+    env_file:
+      - var.env
+    volumes:
+      - db_mariadb_data:/var/lib/mysql
+    networks:
+      - web_stack
+
+  # ---- PhpMyAdmin ----
+  pma_njs:
+    image: phpmyadmin:latest
+    container_name: pma_njs
+    ports:
+      - "${PMA_PORT_EXT:-8083}:80"
+    env_file:
+      - var.env
+    networks:
+      - web_stack
+
+networks:
+  web_stack:
+    name: web_stack
+    driver: bridge
+
+# ============================================================
+# Volumes
+# ============================================================
+volumes:
+  www_njs_data:
+    name: www_njs_data
+  db_mariadb_data:
+    name: db_mariadb_data

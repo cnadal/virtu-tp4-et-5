@@ -1,0 +1,38 @@
+services:
+  web89:
+    image: php:8.2-apache
+    container_name: web89
+    volumes:
+      - ./web89/html:/var/www/html
+      - ./web89/apache/sites_enabled:/etc/apache2/sites_enabled
+      - ./web89/php/custom-php.ini:/usr/local/etc/php/conf.d/custom.ini
+    ports:
+      - 89:80
+    networks:
+      - bridge
+  
+  mysql:
+    image: mysql:9.2
+    container_name: mysql3306
+    environment:
+      - MYSQL_ROOT_PASSWORD=mdpRoot123
+    volumes:
+      - ./mysql1/mysql:/var/lib/mysql/
+      - ./mysql1/db/custom.cnf:/etc/mysql/conf.d/custom.cnf
+    networks:
+      - bridge
+  pma:
+    image: phpmyadmin
+    container_name: pma_mysql82
+    depends_on:
+      - mysql
+    ports:
+      - 82:80
+    environment:
+      - PMA_HOST=mysql
+    networks:
+      - bridge
+
+networks: 
+  bridge:
+    driver: bridge

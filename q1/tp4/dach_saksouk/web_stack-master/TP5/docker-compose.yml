@@ -1,0 +1,170 @@
+version: '3.8'
+
+# ============================================================
+# Réseaux (isolation)
+# ============================================================
+networks:
+  net_public:
+    driver: bridge
+  net_db:
+    driver: bridge
+  net_auth:
+    driver: bridge
+
+# ============================================================
+# Volumes persistants
+# ============================================================
+volumes:
+  mysql_master_data:
+  mysql_slave_data:
+  postgres_data:
+
+# ============================================================
+# Services
+# ============================================================
+services:
+
+  # ----------------------------------------------------------
+  # 1. Reverse Proxy — point d'entrée unique
+  # ----------------------------------------------------------
+  proxy_nginx:
+    image: nginx:alpine
+    container_name: proxy_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - net_public
+    depends_on:
+      - web_app
+      - keycloak_auth
+
+  # ----------------------------------------------------------
+  # 2. Serveur Web Applicatif (Apache + PHP)
+  # ----------------------------------------------------------
+  web_app:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: web_app
+    env_file: .env
+    networks:
+      - net_public
+      - net_db
+    depends_on:
+      mysql_master:
+        condition: service_healthy
+      mysql_slave:
+        condition: service_healthy
+
+  # ----------------------------------------------------------
+  # 3. MySQL Master (écritures)
+  # ----------------------------------------------------------
+  mysql_master:
+    image: mysql:9.2
+    container_name: mysql_master
+    env_file: .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_master_data:/var/lib/mysql
+      - ./mysql/master.cnf:/etc/mysql/conf.d/master.cnf:ro
+      - ./mysql/init-master.sh:/docker-entrypoint-initdb.d/init-master.sh:ro
+    networks:
+      - net_db
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ----------------------------------------------------------
+  # 4. MySQL Slave (lecture / réplication)
+  # ----------------------------------------------------------
+  mysql_slave:
+    image: mysql:9.2
+    container_name: mysql_slave
+    env_file: .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_slave_data:/var/lib/mysql
+      - ./mysql/slave.cnf:/etc/mysql/conf.d/slave.cnf:ro
+    networks:
+      - net_db
+    depends_on:
+      mysql_master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ----------------------------------------------------------
+  # 5a. PostgreSQL — base de données de Keycloak
+  # ----------------------------------------------------------
+  postgres_keycloak:
+    image: postgres:15
+    container_name: postgres_keycloak
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - net_auth
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ----------------------------------------------------------
+  # 5b. Keycloak — gestion des identités (SSO)
+  # ----------------------------------------------------------
+  keycloak_auth:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak_auth
+    command: start-dev --import-realm
+    env_file: .env
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres_keycloak:5432/${POSTGRES_DB}
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HOSTNAME: tp5.local
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    networks:
+      - net_public
+      - net_auth
+    depends_on:
+      postgres_keycloak:
+        condition: service_healthy
+
+  # ----------------------------------------------------------
+  # 6. Mailpit — intercepteur SMTP / interface web mails
+  # ----------------------------------------------------------
+  mail_test:
+    image: axllent/mailpit
+    container_name: mail_test
+    networks:
+      - net_public

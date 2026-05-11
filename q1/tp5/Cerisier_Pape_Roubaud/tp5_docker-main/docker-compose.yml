@@ -1,0 +1,141 @@
+services:
+  proxy_nginx:
+    image: nginx:latest
+    container_name: proxy_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - web_app
+    networks:
+      - net_public
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+
+  web_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: web_app
+    volumes:
+      - ./public_html:/var/www/html
+    networks:
+      - net_public
+      - net_db
+
+  mysql_master:
+    image: mysql:9.2
+    container_name: mysql_master
+    command: --server-id=1 --log-bin=mysql-bin --binlog-do-db=app_db
+    env_file:
+      - .env
+    volumes:
+      - master_data:/var/lib/mysql
+      - ./master.cnf:/etc/mysql/conf.d/master.cnf
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - net_db
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql_slave:
+    image: mysql:9.2
+    container_name: mysql_slave
+    command: --server-id=2 --relay-log=mysql-relay-bin --read-only=1
+    env_file:
+      - .env
+    volumes:
+      - slave_data:/var/lib/mysql
+      - ./slave.cnf:/etc/mysql/conf.d/slave.cnf
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - net_db
+    depends_on:
+      mysql_master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql_setup:
+    image: mysql:9.2
+    container_name: mysql_setup
+    env_file:
+      - .env
+    depends_on:
+      mysql_master:
+        condition: service_healthy
+      mysql_slave:
+        condition: service_healthy
+    volumes:
+      - ./setup-replication.sh:/setup-replication.sh
+    networks:
+      - net_db
+    command: bash /setup-replication.sh
+    restart: "no"
+
+  postgres_keycloak:
+    image: postgres:15
+    container_name: postgres_keycloak
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_DB=keycloak
+      - POSTGRES_USER=keycloak
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    networks:
+      - net_auth
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  keycloak_auth:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak_auth
+    command: start-dev --import-realm
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres_keycloak:
+        condition: service_healthy
+    environment:
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://postgres_keycloak:5432/keycloak
+      - KC_DB_USERNAME=keycloak
+      - KC_DB_PASSWORD=${POSTGRES_PASSWORD}
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import
+    networks:
+      net_public:
+        aliases:
+          - tp5.local
+      net_auth:
+
+  mail_test:
+    image: axllent/mailpit
+    container_name: mail_test
+    ports:
+      - "8025:8025"
+    networks:
+      - net_public
+
+volumes:
+  master_data:
+  slave_data:
+
+networks:
+  net_public:
+    driver: bridge
+  net_db:
+    driver: bridge
+  net_auth:
+    driver: bridge

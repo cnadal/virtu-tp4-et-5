@@ -1,0 +1,44 @@
+networks:
+  web_stack:
+    driver: bridge
+    name: web_stack
+
+services:
+
+  mysql:
+    container_name: db_mysql
+    image: mysql:9.2
+    env_file:
+      - var.env
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - web_stack
+
+  web:
+    container_name: web_mp
+    build: .
+    ports:
+      - "80:80"
+    networks:
+      - web_stack
+    depends_on:
+      - mysql
+
+
+  phpmyadmin:
+    container_name: pma
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - "81:80"
+    env_file:
+      - var.env
+    networks:
+      - web_stack
+    depends_on:
+      - mysql
+
+
+volumes:
+  mysql_data:
+

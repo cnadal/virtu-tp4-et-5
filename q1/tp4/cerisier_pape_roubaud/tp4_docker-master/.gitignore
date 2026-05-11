@@ -1,0 +1,6 @@
+# Docker database runtime data (generated files)
+web_stackMP/mysql1/mysql/
+web_stackPP/pgdata/
+
+# Unix socket files created by database containers
+*.sock

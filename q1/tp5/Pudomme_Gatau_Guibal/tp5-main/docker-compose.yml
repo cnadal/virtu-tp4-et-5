@@ -1,0 +1,113 @@
+services:
+  proxy_nginx:
+    image: nginx:latest
+    container_name: proxy_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - net_public
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - web_app
+
+  web_app:
+    build: .
+    container_name: web_app
+    volumes:
+      - ./src:/var/www/html
+    environment:
+      KEYCLOAK_URL: http://keycloak_auth:8080/auth
+      KEYCLOAK_PUBLIC_URL: http://tp5.local/auth
+      KEYCLOAK_REALM: tp5
+      KEYCLOAK_CLIENT_ID: web_app
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      MYSQL_HOST_MASTER: mysql_master
+      MYSQL_HOST_SLAVE: mysql_slave
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    networks:
+      - net_public
+      - net_db
+
+  mysql_master:
+    image: mysql:9.2
+    container_name: mysql_master
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    networks:
+      - net_db
+    volumes:
+      - mysql_master_data:/var/lib/mysql
+      - ./master.cnf:/etc/mysql/conf.d/master.cnf:ro
+
+  mysql_slave:
+    image: mysql:9.2
+    container_name: mysql_slave
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    networks:
+      - net_db
+    depends_on:
+      - mysql_master
+    volumes:
+      - mysql_slave_data:/var/lib/mysql
+      - ./slave.cnf:/etc/mysql/conf.d/slave.cnf:ro
+
+  postgres_keycloak:
+    image: postgres:15
+    container_name: postgres_keycloak
+    environment:
+      POSTGRES_DB: ${KC_DB_NAME}
+      POSTGRES_USER: ${KC_DB_USER}
+      POSTGRES_PASSWORD: ${KC_DB_PASSWORD}
+    networks:
+      - net_auth
+    volumes:
+      - postgres_keycloak_data:/var/lib/postgresql/data
+
+  keycloak_auth:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak_auth
+    command: start-dev
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres_keycloak:5432/${KC_DB_NAME}
+      KC_DB_USERNAME: ${KC_DB_USER}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+      KEYCLOAK_ADMIN: ${KC_ADMIN_USER}
+      KEYCLOAK_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD}
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_RELATIVE_PATH: /auth
+    networks:
+      - net_auth
+      - net_public
+    depends_on:
+      - postgres_keycloak
+
+  mail_test:
+    image: axllent/mailpit
+    container_name: mail_test
+    networks:
+      - net_public
+
+volumes:
+  mysql_master_data:
+  mysql_slave_data:
+  postgres_keycloak_data:
+
+networks:
+  net_public:
+    driver: bridge
+  net_db:
+    driver: bridge
+  net_auth:
+    driver: bridge

@@ -1,0 +1,12 @@
+[mysqld]
+# Identifiant unique du serveur (doit être différent du master)
+server-id       = 2
+
+# Journal des relais reçus du master
+relay-log       = relay-log
+
+# Le slave est en lecture seule (sécurité)
+read_only       = 1
+
+# Ne répliquer que la base métier
+replicate_do_db = garage

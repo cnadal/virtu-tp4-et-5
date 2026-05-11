@@ -1,0 +1,13 @@
+services:
+  mon-app-php:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mon-app-php
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - ./:/var/www/html
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

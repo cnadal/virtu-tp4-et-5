@@ -1,0 +1,92 @@
+services:
+  proxy_nginx:
+    image: nginx
+    container_name:  'proxy_nginx'
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - net_public
+    depends_on:
+      - web_app
+
+  web_app:
+    build:
+      context: apache
+      dockerfile: apache.Dockerfile
+    container_name: 'web_app'
+    volumes:
+      - ./apache/html:/var/www/html
+    networks:
+      - net_public
+      - net_db
+
+
+  mysql_master:
+    image: mysql:8.0
+    container_name: 'mysql_master'
+    env_file :
+      .env
+    ports:
+      - '3306:3306'
+    volumes:
+      #- ./mysql/mysql_data_master:/var/lib/mysql
+      - ./mysql/init_master.sql:/docker-entrypoint-initdb.d/init_master.sql
+    networks:
+      - net_db
+    command:
+      --server-id=1
+
+  mysql_slave:
+    image: mysql:8.0
+    container_name: 'mysql_slave'
+    depends_on:
+      - mysql_master
+    env_file:
+      .env
+    ports:
+      - '3316:3306'
+    volumes:
+      #- ./mysql/mysql_data_slave:/var/lib/mysql
+      - ./mysql/init_slave.sql:/docker-entrypoint-initdb.d/init_slave.sql
+    networks:
+      - net_db
+    command:
+      --server-id=2
+
+
+  postgres_keycloak:
+    image: postgres:15
+    container_name: postgres_keycloak
+    env_file:
+      .env
+    networks:
+      - net_auth
+
+  keycloak_auth:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak_auth
+    command: start-dev
+    env_file:
+      .env
+    ports:
+      - "8081:8080"
+    networks:
+      - net_public
+      - net_auth
+    depends_on:
+      - postgres_keycloak
+
+
+networks:
+  net_public:
+    name: net_public
+    driver: bridge
+  net_db:
+    name: net_db
+    driver: bridge
+  net_auth:
+    name: net_auth
+    driver: bridge

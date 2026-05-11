@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Garage - Accueil</title>
+</head>
+<body>
+
+  <h1>Garage de voitures</h1>
+
+  <nav>
+    <ul>
+      <li><a href="creation.html">Créer la base de données</a></li>
+      <li><a href="ajout.html">Ajouter une voiture</a></li>
+      <li><a href="liste.html">Lister les voitures</a></li>
+    </ul>
+  </nav>
+
+  <hr>
+
+  <h2>Produits</h2>
+  <div id="products"></div>
+
+  <script>
+    const cars = [
+      { name: "Tesla Model 3", price: "40 000€" },
+      { name: "BMW M4", price: "75 000€" },
+      { name: "Audi A3", price: "30 000€" }
+    ];
+
+    const container = document.getElementById("products");
+
+    cars.forEach(car => {
+      const div = document.createElement("div");
+      div.innerHTML = `<strong>${car.name}</strong> - ${car.price}`;
+      container.appendChild(div);
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,42 @@
+services:
+  mysql:
+    image: mysql:9.2
+    container_name: mysql3306
+    env_file: ./var.env
+    ports:
+      - 3306:3306
+    volumes:
+      - ./mysql1/mysql:/var/lib/mysql
+      - ./mysql1/custom.cnf:/etc/mysql/conf.d/custom.cnf
+    networks:
+      - pont
+
+  pma:
+    image: phpmyadmin
+    container_name: pma_mysql82
+    depends_on:
+      - mysql
+    ports:
+      - 82:80
+    environment:
+      - PMA_HOST=mysql
+    networks:
+      - pont
+
+  web89:
+    image: web89guibalprudhomme
+    build:
+      context: .
+      dockerfile: web89/Dockerfile
+    container_name: web89
+    volumes:
+      - ./web89/apache/sites_enabled:/etc/apache2/sites_enabled
+      - ./web89/php/custom-php.ini:/usr/local/etc/php/conf.d/custom-php.ini
+    ports:
+      - 89:80
+    networks:
+      - pont
+
+networks:
+  pont:
+    driver: bridge

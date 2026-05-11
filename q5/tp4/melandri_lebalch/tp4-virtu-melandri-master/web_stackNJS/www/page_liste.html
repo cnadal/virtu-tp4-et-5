@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Liste des Voitures</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; }
+        .btn { padding: 10px 20px; background: #FF9800; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .btn:hover { background: #F57C00; }
+        #resultat { margin-top: 20px; padding: 15px; border: 1px solid #ccc; background: #f9f9f9; min-height: 50px; }
+        nav { margin-bottom: 20px; }
+        nav a { margin-right: 15px; text-decoration: none; color: #2196F3; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html">⬅️ Retour à l'accueil</a>
+    </nav>
+    
+    <h1>Étape 3 : Liste des Voitures</h1>
+    <p>Affiche le contenu de la BDD via AJAX.</p>
+    
+    <button class="btn" onclick="listerVoitures()">Afficher la Base de Données</button>
+    
+    <div id="resultat">En attente d'action...</div>
+
+    <script>
+        function listerVoitures() {
+            const divResult = document.getElementById('resultat');
+            divResult.innerHTML = "<em>Chargement des données via AJAX...</em>";
+            
+            fetch('http://localhost:8082/web_stackNJS/listeVoitures.php')
+                .then(response => response.text())
+                .then(data => {
+                    divResult.innerHTML = "<strong>Données récupérées :</strong><br><br>" + data;
+                })
+                .catch(error => {
+                    divResult.innerHTML = "<span style='color:red;'><strong>Erreur réseau :</strong> " + error.message + "</span>";
+                });
+        }
+    </script>
+</body>
+</html>

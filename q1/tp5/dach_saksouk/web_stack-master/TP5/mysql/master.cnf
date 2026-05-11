@@ -1,0 +1,12 @@
+[mysqld]
+# Identifiant unique du serveur (obligatoire pour la réplication)
+server-id       = 1
+
+# Active le journal binaire (indispensable pour le master)
+log_bin         = mysql-bin
+
+# Ne répliquer que la base métier
+binlog_do_db    = garage
+
+# Format de log recommandé
+binlog_format   = ROW

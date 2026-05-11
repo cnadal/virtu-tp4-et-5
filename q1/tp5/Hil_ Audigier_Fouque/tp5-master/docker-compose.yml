@@ -1,0 +1,97 @@
+version: '3.8'
+
+networks:
+  net_public:
+    driver: bridge
+  net_db:
+    driver: bridge
+  net_auth:
+    driver: bridge
+
+services:
+  proxy_nginx:
+    image: nginx:latest
+    container_name: proxy_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - net_public
+    restart: unless-stopped
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+
+  web_app:
+    build: .
+    container_name: web_app
+    networks:
+      - net_public
+      - net_db
+    restart: unless-stopped
+
+  mysql_master:
+    image: mysql:9.2
+    container_name: mysql_master
+    env_file:
+      - ./var.env
+    volumes:
+      - ./mysql/master_data:/var/lib/mysql
+      - ./mysql/master.cnf:/etc/mysql/conf.d/custom.cnf
+    networks:
+      - net_db
+
+  mysql_slave:
+    image: mysql:9.2
+    container_name: mysql_slave
+    env_file:
+      - ./var.env
+    volumes:
+      - ./mysql/slave_data:/var/lib/mysql
+      - ./mysql/slave.cnf:/etc/mysql/conf.d/custom.cnf
+    networks:
+      - net_db
+
+  postgres_keycloak:
+    image: postgres:15
+    container_name: postgres_keycloak
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak123
+    volumes:
+      - ./keycloak/postgres_data:/var/lib/postgresql/data
+    networks:
+      - net_auth
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U keycloak -d keycloak" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  keycloak_auth:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak_auth
+    command: start-dev
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres_keycloak:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak123
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin123
+    depends_on:
+      postgres_keycloak:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    networks:
+      - net_public
+      - net_auth
+
+  mail_test:
+    image: axllent/mailpit
+    container_name: mail_test
+    ports:
+      - "8025:8025"
+    networks:
+      - net_public

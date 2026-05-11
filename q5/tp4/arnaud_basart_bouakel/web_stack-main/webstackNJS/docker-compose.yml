@@ -1,0 +1,48 @@
+services:
+  db_mysql:
+    image: mysql:8.0
+    container_name: db_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: garageM
+    volumes:
+      - db_mysql_data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    networks:
+      - web_stackNJS
+
+  php:
+    build: .
+    container_name: php_stack_njs
+    volumes:
+      - ./php:/var/www/html
+    ports:
+      - "8080:80"
+    env_file:
+      - ./var.env
+    depends_on:
+      - db_mysql
+    networks:
+      - web_stackNJS
+
+  node:
+    image: node:20
+    container_name: web_stack_njs
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+    depends_on:
+      - php
+    networks:
+      - web_stackNJS
+    command: ["node", "/app/index.js"]
+    working_dir: /app
+
+volumes:
+  db_mysql_data:
+
+networks:
+  web_stackNJS:
+    driver: bridge

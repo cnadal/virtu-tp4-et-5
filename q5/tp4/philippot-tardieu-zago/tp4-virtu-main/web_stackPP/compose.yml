@@ -1,0 +1,55 @@
+services:
+  web90:
+    build: .
+    image: apache-web90
+    #image: yvaniak/virtu-apache-web90:1.0
+    #image: harbinfo.iutmontp.univ-montp2.fr/philippote/virtu-apache-web90:1.0
+    #pull_policy: always #pour tester de pull depuis les registry
+    container_name: web_pp
+    env_file: var.env
+    volumes:
+      - ./html:/var/www/html
+      - ./php.ini:/etc/php.ini
+    ports:
+      - "90:80"
+    networks:
+      - web_stack
+  postgres:
+    container_name: db_postgres
+    image: postgres
+    #image: yvaniak/virtu-postgres:1.0
+    #image: harbinfo.iutmontp.univ-montp2.fr/philippote/virtu-postgres:1.0
+    #pull_policy: always #pour tester de pull depuis les registry
+    networks: 
+      - web_stack
+    ports:
+      - "5432:5432"
+    env_file: var.env
+    volumes:
+      - ./Voitures.sql:/docker-entrypoint-initdb.d/Voitures.sql
+    #  - ./pgsql/postgresql/postgresql.conf:/var/lib/postgresql/18/docker/postgresql.conf
+    #  - ./pgsql/postgresql/pg_hba.conf:/var/lib/postgresql/18/docker/pg_hba.conf
+    #  - ./pgsql/postgresql/pg_ident.conf:/var/lib/postgresql/18/docker/pg_ident.conf
+
+  pga:
+    image: dpage/pgadmin4
+    #image: yvaniak/virtu-pga:1.0
+    #image: harbinfo.iutmontp.univ-montp2.fr/philippote/virtu-pga:1.0
+    #pull_policy: always #pour tester de pull depuis les registry
+    container_name: pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - web_stack
+    ports:
+      - "91:80"
+    env_file:
+      var.env
+    #entrypoint: ls -lah
+
+networks:
+  web_stack:
+    name: web_stack
+    driver: bridge
+
+#web_njs à ajouter

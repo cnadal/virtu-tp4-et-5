@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accueil - Node.js Web Stack</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; margin: 0; padding: 20px; }
+        nav { background: #333; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        nav a { color: white; text-decoration: none; margin-right: 20px; font-weight: bold; }
+        nav a:hover { color: #4CAF50; }
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; margin-top: 20px; }
+        .product-card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; transition: transform 0.2s; }
+        .product-card:hover { transform: translateY(-5px); }
+        .price { color: #e91e63; font-size: 1.2em; font-weight: bold; }
+        .description { color: #666; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html">Accueil</a>
+        <a href="page_creation.html">1. Création BDD</a>
+        <a href="page_ajout.html">2. Ajout Voitures</a>
+        <a href="page_liste.html">3. Liste Voitures</a>
+    </nav>
+
+    <h1>Notre Catalogue de Produits</h1>
+    <p>Cette page a été générée dynamiquement avec JavaScript.</p>
+    
+    <div class="product-grid" id="product-container">
+        <!-- Les produits seront injectés ici par JS -->
+    </div>
+
+    <script>
+        // Génération IA des produits
+        const products = [
+            { id: 1, name: "Ordinateur Portable Gamer", price: "1299 €", desc: "Performances extrêmes pour joueurs exigeants." },
+            { id: 2, name: "Smartphone Ultra", price: "899 €", desc: "Le top de la technologie dans votre poche." },
+            { id: 3, name: "Casque Audio Sans Fil", price: "149 €", desc: "Immersion sonore totale avec réduction de bruit." },
+            { id: 4, name: "Clavier Mécanique RGB", price: "89 €", desc: "Pour une frappe précise et personnalisée." },
+            { id: 5, name: "Écran Incurvé 27\"", price: "249 €", desc: "Une qualité d'image époustouflante." },
+            { id: 6, name: "Souris Ergonomique", price: "49 €", desc: "Confort absolu pour les longues sessions." }
+        ];
+
+        const container = document.getElementById('product-container');
+
+        products.forEach(product => {
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            card.innerHTML = `
+                <h3>${product.name}</h3>
+                <p class="description">${product.desc}</p>
+                <p class="price">${product.price}</p>
+            `;
+            container.appendChild(card);
+        });
+    </script>
+</body>
+</html>

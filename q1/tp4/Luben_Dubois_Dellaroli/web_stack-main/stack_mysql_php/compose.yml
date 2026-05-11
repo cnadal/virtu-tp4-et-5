@@ -1,0 +1,45 @@
+services:
+  mysql:
+    image: mysql:9.2
+    container_name: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    ports:
+      - 3306:3306
+    volumes:
+      - ./database:/var/lib/mysql
+    networks:
+      - bridge
+  
+  web:
+    image: webapachemysql
+    build:
+      context: .
+    container_name: web
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    ports:
+      - 80:80
+    volumes:
+      - ./web:/var/www/html
+    depends_on:
+      - mysql
+    networks:
+      - bridge
+
+  phpmyadmin:
+    image: phpmyadmin:apache
+    container_name: pma_mysql82
+    depends_on:
+      - mysql
+    ports:
+      - 82:80
+    environment:
+      - PMA_HOST=mysql
+    networks:
+      - bridge
+
+
+networks:
+  bridge:
+    driver: bridge

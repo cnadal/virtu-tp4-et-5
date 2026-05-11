@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Créer BDD</title>
+<style>
+body { font-family: Arial; background:#f4f4f4; padding:40px; }
+.container { background:white; padding:20px; border-radius:10px; max-width:600px; margin:auto; }
+button { padding:10px 20px; border:none; background:#007bff; color:white; border-radius:5px; cursor:pointer; }
+button:hover { background:#0056b3; }
+pre { background:#111; color:#0f0; padding:10px; margin-top:20px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+<h1>Création de la base de données</h1>
+<button onclick="createBDD()">Créer</button>
+<pre id="result"></pre>
+</div>
+
+<script>
+async function createBDD() {
+  try {
+    const res = await fetch("http://localhost:8080/creationBDD.php");
+    const data = await res.text();
+    document.getElementById("result").innerHTML = data;
+  } catch (err) {
+    console.error(err);
+  }
+}
+</script>
+
+</body>
+</html>

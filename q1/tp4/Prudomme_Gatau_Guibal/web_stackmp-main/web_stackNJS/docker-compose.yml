@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: web_stack_njs
+    ports:
+      - "8080:3000"
+    volumes:
+      - ./public:/usr/src/app/public
+      - ./server.js:/usr/src/app/server.js
+    environment:
+      - NODE_ENV=development
+    restart: unless-stopped
+

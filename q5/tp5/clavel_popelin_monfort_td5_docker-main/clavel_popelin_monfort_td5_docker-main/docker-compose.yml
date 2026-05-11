@@ -1,0 +1,117 @@
+networks:
+  net_public:
+    driver: bridge
+  net_db:
+    driver: bridge
+  net_auth:
+    driver: bridge
+
+services:
+
+  proxy_nginx:
+    image: nginx:latest
+    container_name: proxy_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - net_public
+    depends_on:
+      - web_app
+      - keycloak_auth
+
+  web_app:
+    container_name: web_app
+    build: .
+    networks:
+      - net_public
+      - net_db
+    depends_on:
+      - mysql_master
+      - mysql_slave
+
+  mysql_master:
+    container_name: mysql_master
+    image: mysql:9.2
+    command:
+      - --server-id=1
+      - --log-bin=mysql-bin
+      - --binlog-format=ROW
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+    env_file:
+      - .env
+    volumes:
+      - ./mysql-init/master-init.sql:/docker-entrypoint-initdb.d/init.sql
+      - mysql_master_data:/var/lib/mysql
+    networks:
+      - net_db
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost", "-u", "root", "-ppassword" ]
+      timeout: 5s
+      retries: 10
+
+  mysql_slave:
+    container_name: mysql_slave
+    image: mysql:9.2
+    command:
+      - --server-id=2
+      - --relay-log=relay-bin
+      - --read-only=1
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+      - --slave-skip-errors=1396
+      - --skip-slave-start=OFF
+    env_file:
+      - .env
+    volumes:
+      - ./mysql-init/slave-init.sql:/docker-entrypoint-initdb.d/init.sql
+      - mysql_slave_data:/var/lib/mysql
+    networks:
+      - net_db
+    depends_on:
+      mysql_master:
+        condition: service_healthy
+
+  postgres_keycloak:
+    image: postgres:15
+    container_name: postgres_keycloak
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - net_auth
+
+  keycloak_auth:
+    container_name: keycloak_auth
+    image: quay.io/keycloak/keycloak:latest
+    env_file:
+      - .env
+    volumes:
+      - ./keycloak-init/full-realm.json:/opt/keycloak/data/import/realm.json
+    command: start-dev --import-realm
+    ports:
+      - "8080:8080"
+    networks:
+      - net_public
+      - net_auth
+    depends_on:
+      - postgres_keycloak
+
+  mail_test:
+    container_name: mail_test
+    image: axllent/mailpit
+    ports:
+      - '8025:8025'
+    env_file:
+      - .env
+    networks:
+      - net_public
+
+volumes:
+  mysql_master_data:
+  mysql_slave_data:
+  postgres_data:

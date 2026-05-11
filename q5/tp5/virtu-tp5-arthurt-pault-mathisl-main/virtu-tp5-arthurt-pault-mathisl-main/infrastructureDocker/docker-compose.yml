@@ -1,0 +1,119 @@
+version: '3.8'
+
+# ============================================================
+# Stack Docker - web_stackMP
+# Apache + PHP 8.2 + MySQL 9.2 + PhpMyAdmin
+# ============================================================
+
+services:
+  # ---- Serveur NGinx nginx:trixie-perl ----
+  proxy_nginx:
+    image: nginx:trixie-perl
+    container_name: proxy_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - web_app
+    networks:
+      - net_public
+
+  # ---- Serveur Web Apache + PHP 8.2 ----
+  web_app:
+    build:
+      context: ./dockerfiles
+      dockerfile: WebAppDockerfile
+    container_name: web_app
+    volumes:
+      - ./dockerfiles/www:/var/www/html
+    networks:
+      - net_public
+      - net_db
+
+
+  keycloak_auth:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak_auth
+    command: start-dev
+    ports:
+      - "8080:8080"
+    env_file:
+      - var.env
+    depends_on:
+      - postgres_keycloak
+    networks:
+      - net_auth
+      - net_public
+
+
+  postgres_keycloak:
+    image: postgres:15
+    container_name: postgres_keycloak
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - var.env
+    networks:
+      - net_auth
+
+
+
+  mysql_master:
+    image: mysql:9.2
+    container_name: mysql_master
+    command: --server-id=1 --log-bin=mysql-bin
+    env_file:
+      - var.env
+    volumes:
+      - ./master.cnf:/etc/mysql/conf.d/master.cnf
+      - mysql_master_data:/var/lib/mysql
+    networks:
+      - net_db
+
+
+  mysql_slave:
+    image: mysql:9.2
+    container_name: mysql_slave
+    command: --server-id=2
+    env_file:
+      - var.env
+    volumes:
+      - ./slave.cnf:/etc/mysql/conf.d/slave.cnf
+      - mysql_slave_data:/var/lib/mysql
+    networks:
+      - net_db
+
+
+  mail_test:
+    image: axllent/mailpit
+    container_name: mail_test
+    ports:
+      - "8025:8025"
+    networks:
+      - net_public
+
+# ============================================================
+# Réseau
+# ============================================================
+networks:
+  net_public:
+    name: net_public
+    driver: bridge
+  net_auth:
+    name: net_auth
+    driver: bridge
+  net_db:
+    name: net_db
+    driver: bridge
+
+
+
+volumes:
+  web_mp_data:
+  postgres_data:
+  mysql_master_data:
+  mysql_slave_data:
+

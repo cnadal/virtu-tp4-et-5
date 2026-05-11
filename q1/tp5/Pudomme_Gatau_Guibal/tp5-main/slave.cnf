@@ -1,0 +1,4 @@
+[mysqld]
+server-id = 2
+log_bin = mysql-bin
+replicate_do_db = app_db

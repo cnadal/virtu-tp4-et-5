@@ -1,0 +1,12 @@
+services:
+  web_node:
+    build: .
+    container_name: web_njs
+    ports:
+      - "8085:3000"
+    networks:
+      - web_stack
+
+networks:
+  web_stack:
+    driver: bridge

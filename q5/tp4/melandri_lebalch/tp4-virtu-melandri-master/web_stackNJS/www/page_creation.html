@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Création de la Base de Données</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; }
+        .btn { padding: 10px 20px; background: #2196F3; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .btn:hover { background: #1976D2; }
+        #resultat { margin-top: 20px; padding: 15px; border: 1px solid #ccc; background: #f9f9f9; min-height: 50px; }
+        nav { margin-bottom: 20px; }
+        nav a { margin-right: 15px; text-decoration: none; color: #2196F3; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html">⬅️ Retour à l'accueil</a>
+    </nav>
+    
+    <h1>Étape 1 : Création de la Base de Données</h1>
+    <p>Cliquez sur le bouton ci-dessous pour déclencher l'appel AJAX vers le script PHP.</p>
+    
+    <button class="btn" onclick="lancerCreation()">Créer la BDD</button>
+    
+    <div id="resultat">En attente d'action...</div>
+
+    <script>
+        function lancerCreation() {
+            const divResult = document.getElementById('resultat');
+            divResult.innerHTML = "<em>Appel AJAX en cours...</em>";
+            
+            // Appel vers le script NodeJS
+            fetch('http://localhost:8082/web_stackNJS/creationBDD.php')
+                .then(response => {
+                    if (!response.ok) throw new Error("Erreur HTTP " + response.status);
+                    return response.text();
+                })
+                .then(data => {
+                    divResult.innerHTML = "<strong>Réponse du serveur (PHP) :</strong><br><br>" + data;
+                })
+                .catch(error => {
+                    divResult.innerHTML = "<span style='color:red;'><strong>Erreur de requête AJAX :</strong> vérifiez que votre serveur PHP (XAMPP/Docker) tourne bien sur le port 80.<br><br>Détail: " + error.message + "</span>";
+                });
+        }
+    </script>
+</body>
+</html>

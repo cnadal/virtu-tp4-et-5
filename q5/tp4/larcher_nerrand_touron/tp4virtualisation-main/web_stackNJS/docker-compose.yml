@@ -1,0 +1,24 @@
+services:
+  web_njs:
+    build: .
+    container_name: web_njs
+    ports:
+      - "8080:8888"
+    volumes:
+      - ./:/home/node/app
+    networks:
+      - web_stack
+
+  web_php:
+    image: php:8.2-apache
+    container_name: 'web_php'
+    ports:
+      - 8080:80
+    volumes:
+      - ../web_stackMP/php:/var/www/html
+    networks:
+      - web_stack
+
+networks:
+  web_stack:
+    driver: bridge

@@ -1,0 +1,106 @@
+services:
+  proxy_nginx:
+    image: nginx:latest
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM nginx:latest
+        COPY ./nginx.conf /etc/nginx/nginx.conf
+    container_name: proxy_nginx
+    depends_on:
+      - web_app
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - net_public
+
+  web_app:
+    image: custom_web_app
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM php:8.2-apache
+        RUN apt-get update && apt-get install -y nano git
+        RUN docker-php-ext-install pdo_mysql
+        RUN a2enmod rewrite && service apache2 restart
+    container_name: web_app
+    networks:
+      - net_public
+      - net_db
+    volumes:
+      - ./html:/var/www/html
+
+  mysql_master:
+    image: mysql:9.2
+    container_name: mysql_master
+    env_file: mysql.env
+    volumes:
+      - mysql_master_data:/var/lib/mysql
+      - ./mysql_master/master.cnf:/etc/mysql/conf.d/custom.cnf
+      - ./mysql_master/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - net_db
+
+  mysql_slave:
+    image: mysql:9.2
+    container_name: mysql_slave
+    env_file: mysql.env
+    volumes:
+      - mysql_slave_data:/var/lib/mysql
+      - ./mysql_slave/slave.cnf:/etc/mysql/conf.d/custom.cnf
+    depends_on:
+      - mysql_master
+    networks:
+      - net_db
+
+  keycloak_auth:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak_auth
+    command: start-dev
+    environment:
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://postgres_keycloak:5432/keycloak
+      - KC_DB_USERNAME=admin
+      - KC_DB_PASSWORD=mdpPostgres
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_PROXY_HEADERS=xforwarded
+      - KC_HTTP_RELATIVE_PATH=/auth
+    depends_on:
+      - postgres_keycloak
+    networks:
+      - net_public
+      - net_auth
+
+  #Créer une DB avec les variables pour keycloak
+  postgres_keycloak:
+    image: postgres:15
+    container_name: postgres_keycloak
+    networks:
+      - net_auth
+    env_file:
+      - postgres.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  mail_test:
+    image: axllent/mailpit
+    container_name: mail_test
+    ports:
+      - "8025:8025"
+    networks:
+      - net_public
+
+networks:
+  net_public:
+    driver: bridge
+  net_db:
+    driver: bridge
+  net_auth:
+    driver: bridge
+
+volumes:
+  mysql_master_data:
+  mysql_slave_data:
+  postgres_data:

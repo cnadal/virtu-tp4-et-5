@@ -1,0 +1,40 @@
+networks:
+  web_stack:
+    driver: bridge
+    name: web_stack
+
+
+services:
+  web:
+    build: .
+    ports:
+      - "80:80"
+    networks:
+      - web_stack
+    depends_on:
+      - postgresql
+
+  postgresql:
+    image: postgres:16-alpine
+    container_name: db_postgres
+    env_file:
+      - var.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - web_stack
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    ports:
+      - "81:80"
+    env_file:
+      - var.env
+    networks:
+      - web_stack
+    depends_on:
+      - postgresql
+
+volumes:
+  postgres_data:

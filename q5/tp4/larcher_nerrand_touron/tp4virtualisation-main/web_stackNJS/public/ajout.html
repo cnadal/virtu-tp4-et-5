@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Ajouter voiture</title>
+    <style>
+      body {
+        font-family: Arial;
+        background: #f4f4f4;
+        padding: 40px;
+      }
+      .container {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        max-width: 600px;
+        margin: auto;
+      }
+      input {
+        width: 100%;
+        padding: 10px;
+        margin: 8px 0;
+      }
+      button {
+        padding: 10px;
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #1e7e34;
+      }
+      #result {
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Ajouter une voiture</h1>
+
+      <input id="marque" placeholder="Marque" />
+      <input id="modele" placeholder="Modèle" />
+      <input id="annee" type="number" placeholder="Année" />
+      <input id="couleur" placeholder="Couleur" />
+      <input id="prix" type="number" step="0.01" placeholder="Prix" />
+
+      <button onclick="addCar()">Ajouter</button>
+
+      <div id="result"></div>
+    </div>
+
+    <script>
+      function addCar() {
+        const formData = new FormData();
+
+        formData.append("marque", document.getElementById("marque").value);
+        formData.append("modele", document.getElementById("modele").value);
+        formData.append("annee", document.getElementById("annee").value);
+        formData.append("couleur", document.getElementById("couleur").value);
+        formData.append("prix", document.getElementById("prix").value);
+
+        fetch("http://localhost:8080/ajoutVoituresGarage.php", {
+          method: "POST",
+          body: formData,
+        })
+          .then((res) => res.text())
+          .then((data) => (document.getElementById("result").innerHTML = data));
+      }
+    </script>
+  </body>
+</html>

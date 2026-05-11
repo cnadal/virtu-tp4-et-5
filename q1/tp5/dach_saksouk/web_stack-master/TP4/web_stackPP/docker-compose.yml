@@ -1,0 +1,41 @@
+services:
+  web_app:
+    build: .
+    container_name: web_pp
+    ports:
+      - "8083:80"
+    networks:
+      - web_stack
+    depends_on:
+      - postgres_db
+
+  postgres_db:
+    image: postgres:15
+    container_name: postgres_db
+    env_file:
+      - .env
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - web_stack
+    ports:
+      - "5432:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin4
+    env_file:
+      - .env
+    ports:
+      - "8084:80"
+    networks:
+      - web_stack
+    depends_on:
+      - postgres_db
+
+volumes:
+  pg_data:
+
+networks:
+  web_stack:
+    driver: bridge

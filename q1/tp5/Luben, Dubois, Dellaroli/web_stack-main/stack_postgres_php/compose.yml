@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - 5444:5432
+    volumes:
+      - ./database/data:/var/lib/postgres
+    networks:
+      - bridge
+  
+  web:
+    image: webapachepostgres
+    build:
+      context: .
+    container_name: web
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - 80:80
+    volumes:
+      - ./web:/var/www/html
+    depends_on:
+      - postgres
+    networks:
+      - bridge
+
+  pgadmin4:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - 8080:80
+    volumes:
+      - ./database/management:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - bridge
+
+
+networks:
+  bridge:
+    driver: bridge
